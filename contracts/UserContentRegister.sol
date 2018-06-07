@@ -1,7 +1,7 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.24;
 
 contract UserContentRegister {
-    
+
     struct User {
         string userName;
         string profileMetaData;
@@ -9,15 +9,15 @@ contract UserContentRegister {
         mapping (uint256 => string) contentIndex;
         mapping (uint256 => string) contentLinks; //update Publication or tag info?
     }
-    
+
     mapping (address => User) public userIndex;
     mapping (address => bool) public registered;
     mapping (string => address) _userAddressLookup;
     uint256 public numUsers;
-    mapping (string => bool) _checkUserNameTaken; 
+    mapping (string => bool) _checkUserNameTaken;
 
     function UserContentRegister() public  {}
-    
+
     function registerNewUser(string userName, string metaData) public returns (bool) {
         if (!registered[msg.sender] && !_checkUserNameTaken[userName]) {
             userIndex[msg.sender] = User(userName, metaData, 0);
@@ -29,44 +29,45 @@ contract UserContentRegister {
         }
         return false;
     }
-    
+
     function getUserAddress(string userName) public constant returns (address) {
         return _userAddressLookup[userName];
     }
-    
+
     function getNumContent(address whichUser) public constant returns (uint256) {
         return userIndex[whichUser].numContent;
     }
-    
+
     function publishContent(string content) public  {
         assert(registered[msg.sender]);
         userIndex[msg.sender].contentIndex[userIndex[msg.sender].numContent] = content;
         userIndex[msg.sender].numContent++;
     }
-    
+
     function updateContentLinks(uint256 contentIndex, string links) public  {
         assert(!registered[msg.sender]);
         assert(contentIndex < userIndex[msg.sender].numContent);
         userIndex[msg.sender].contentLinks[contentIndex] = links;
     }
-    
+
     function updateMyUserName(string newUsername) public {
         if (registered[msg.sender] && !_checkUserNameTaken[newUsername]) {
+            _checkUserNameTaken[userIndex[msg.sender].userName] = false;
             userIndex[msg.sender].userName = newUsername;
             _checkUserNameTaken[newUsername] = true;
         }
     }
-    
+
     function updateMetaData(string _metaData) public {
         if (registered[msg.sender]) {
             userIndex[msg.sender].profileMetaData = _metaData;
         }
     }
-    
+
     function checkUserNameTaken(string username) public constant returns (bool) {
         return _checkUserNameTaken[username];
     }
-    
+
     function getUserContent(address whichUser, uint256 index) public constant returns (string content) {
         return userIndex[whichUser].contentIndex[index];
     }
@@ -75,7 +76,7 @@ contract UserContentRegister {
         bytes memory totalMemory = bytes(userIndex[whichUser].contentIndex[index]);
         return (bytesToBytes32(totalMemory, 0), bytesToBytes32(totalMemory, 32));
     }
-    
+
     function bytesToBytes32(bytes b, uint offset) private constant returns (bytes32) {
         bytes32 out;
         for (uint i = 0; i < 32 && offset + i < b.length; i++) {
