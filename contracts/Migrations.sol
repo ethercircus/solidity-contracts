@@ -1,4 +1,3 @@
-// testing github solidity highlighting
 pragma solidity ^0.4.2;
 
 contract Migrations {
