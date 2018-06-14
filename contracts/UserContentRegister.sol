@@ -16,7 +16,7 @@ contract UserContentRegister {
     uint256 public numUsers;
     mapping (string => bool) _checkUserNameTaken;
 
-    function UserContentRegister() public  {}
+    constructor() public  {}
 
     function registerNewUser(string userName, string metaData) public returns (bool) {
         if (!registered[msg.sender] && !_checkUserNameTaken[userName]) {
@@ -77,7 +77,7 @@ contract UserContentRegister {
         return (bytesToBytes32(totalMemory, 0), bytesToBytes32(totalMemory, 32));
     }
 
-    function bytesToBytes32(bytes b, uint offset) private constant returns (bytes32) {
+    function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
         bytes32 out;
         for (uint i = 0; i < 32 && offset + i < b.length; i++) {
             out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);

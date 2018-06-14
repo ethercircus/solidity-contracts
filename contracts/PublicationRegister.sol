@@ -41,7 +41,7 @@ contract PublicationRegister {
     uint256 public numPublications;
     UserContentRegisterInterface public userContentRegister;
 
-    function PublicationRegister(address _userContentRegisterAddress) public {
+    constructor(address _userContentRegisterAddress) public {
         numPublications = 0;
         userContentRegister = UserContentRegisterInterface(_userContentRegisterAddress);
     }

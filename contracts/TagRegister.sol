@@ -24,7 +24,7 @@ contract TagRegister {
     UserContentRegisterInterface public userContentRegister;
 
 
-    function TagRegister(address userContentRegisterAddress) public {
+    constructor(address userContentRegisterAddress) public {
         userContentRegister = UserContentRegisterInterface(userContentRegisterAddress);
     }
 
