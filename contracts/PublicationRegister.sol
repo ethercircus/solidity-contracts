@@ -30,7 +30,7 @@ contract PublicationRegister {
         mapping (uint256 => uint32) postUniqueSupportersIndex;
         mapping (uint256 => mapping (address => bool)) trackPostSupporters;
         mapping (uint256 => mapping (uint256 => address)) postCommentAddresses;
-        mapping (uint256 => mapping (uint256 => bytes32)) postComments;
+        mapping (uint256 => mapping (uint256 => string)) postComments;
         mapping (uint256 => uint256) numCommentsIndex;
         mapping (address => bool) trackPublicationSupporters;
     }
@@ -84,7 +84,7 @@ contract PublicationRegister {
         }
     }
 
-    function supportPost(uint256 whichPublication, uint256 postIndex, bytes32 optionalComment) public payable returns (bool) {
+    function supportPost(uint256 whichPublication, uint256 postIndex, string optionalComment) public payable returns (bool) {
         Publication storage p = publicationIndex[whichPublication];
         if (msg.value < p.minSupportCostWei) {
             msg.sender.transfer(msg.value);
@@ -103,7 +103,8 @@ contract PublicationRegister {
                 p.trackPublicationSupporters[msg.sender] = true;
                 p.uniqueSupporters++;
             }
-            if (optionalComment != 0) {
+	    bytes memory commentBytes = bytes(optionalComment); // Uses memory
+            if (commentBytes.length != 0) {
                 p.postComments[postIndex][p.numCommentsIndex[postIndex]] = optionalComment;
                 p.postCommentAddresses[postIndex][p.numCommentsIndex[postIndex]] = msg.sender;
                 p.numCommentsIndex[postIndex]++;
@@ -161,7 +162,7 @@ contract PublicationRegister {
         return p.numCommentsIndex[contentIndex];
     }
 
-    function getContentCommentByIndex(uint256 whichPublication, uint256 contentIndex, uint256 commentIndex) public constant returns (bytes32) {
+    function getContentCommentByIndex(uint256 whichPublication, uint256 contentIndex, uint256 commentIndex) public constant returns (string) {
         Publication storage p = publicationIndex[whichPublication];
         return p.postComments[contentIndex][commentIndex];
     }
