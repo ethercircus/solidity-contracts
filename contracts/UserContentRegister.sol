@@ -7,7 +7,7 @@ contract UserContentRegister {
         string profileMetaData;
         uint256 numContent;
         mapping (uint256 => string) contentIndex;
-        mapping (uint256 => string) contentLinks; //update Publication or tag info?
+        mapping (uint256 => string) contentLinks; //update Publication or tag info
     }
 
     mapping (address => User) public userIndex;

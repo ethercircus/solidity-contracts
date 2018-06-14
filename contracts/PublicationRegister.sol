@@ -103,7 +103,7 @@ contract PublicationRegister {
                 p.trackPublicationSupporters[msg.sender] = true;
                 p.uniqueSupporters++;
             }
-	    bytes memory commentBytes = bytes(optionalComment); // Uses memory
+	    bytes memory commentBytes = bytes(optionalComment);
             if (commentBytes.length != 0) {
                 p.postComments[postIndex][p.numCommentsIndex[postIndex]] = optionalComment;
                 p.postCommentAddresses[postIndex][p.numCommentsIndex[postIndex]] = msg.sender;

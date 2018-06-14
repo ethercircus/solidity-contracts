@@ -23,7 +23,6 @@ contract TagRegister {
 
     UserContentRegisterInterface public userContentRegister;
 
-
     constructor(address userContentRegisterAddress) public {
         userContentRegister = UserContentRegisterInterface(userContentRegisterAddress);
     }
@@ -100,5 +99,4 @@ contract TagRegister {
         }
         return string(bytesStringTrimmed);
     }
-
 }
