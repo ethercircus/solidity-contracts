@@ -84,6 +84,20 @@ contract PublicationRegister {
         }
     }
 
+    function updateMetaData(uint256 whichPublication, string metaData) public {
+        Publication storage p = publicationIndex[whichPublication];
+        if (msg.sender == p.admin) {
+            p.metaData = metaData;
+        }
+    }
+
+    function decreaseAdminPaymentPercentage(uint256 whichPublication, uint8 newAdminPaymentPercentage) public {
+        Publication storage p = publicationIndex[whichPublication];
+        if (msg.sender == p.admin && newAdminPaymentPercentage < p.adminPaymentPercentage) {
+            p.adminPaymentPercentage = newAdminPaymentPercentage;
+        }
+    }
+
     function supportPost(uint256 whichPublication, uint256 postIndex, string optionalComment) public payable returns (bool) {
         Publication storage p = publicationIndex[whichPublication];
         if (msg.value < p.minSupportCostWei) {
