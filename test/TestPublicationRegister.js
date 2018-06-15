@@ -58,9 +58,8 @@ contract('PublicationRegister', function(accounts) {
       //assert.equal(revenue, 50, "author claim did not go up correctly");
     });
   });
-
   //********************
-  //4) Withdrawing Claims
+  //4) Withdrawing Author Claims
   //********************
   it("Withdrawing Claims", function() {
     var startBalance = web3.fromWei(web3.eth.getBalance(accounts[1]), "finney");
@@ -82,5 +81,39 @@ contract('PublicationRegister', function(accounts) {
     .then(function(claim) {
       assert.equal(claim, 0, "author claim did not go down");
     });	    
+  });
+  //********************
+  //5) Permissioned Publications
+  //********************
+  it("Permissioned Publications", function() {
+    return PublicationRegister.deployed().then(function(instance) {
+      publicationRegister = instance;	    
+      return publicationRegister.createPublication("Daily-Gazette", "empty", 1, 40, {from: accounts[0]});
+    })
+    
+
+    .then(function() {
+      return publicationRegister.publishContent(1, 0, {from: accounts[1]});
+    })
+    .then(function() {
+      return publicationRegister.getNumPublished.call(1);	    
+    })
+    .then(function(numPublished) {
+      assert.equal(numPublished, 0, "should be none published since we tried to publish from unpermissioned account");
+    })
+
+    .then(function() {
+      return publicationRegister.permissionAuthor(1, accounts[1], true, {from: accounts[0]});
+    })
+    .then(function() {
+      return publicationRegister.publishContent(1, 0, {from: accounts[1]});
+    })
+    .then(function() {
+      return publicationRegister.getNumPublished.call(1);	    
+    })
+    .then(function(numPublished) {
+      assert.equal(numPublished, 1, "should increase the numPublished now that the author is permissioned");
+    });
+
   });
 });
