@@ -1,54 +1,78 @@
+
 pragma solidity ^0.4.24;
 
-contract UserContentRegisterInterface {
-    function getUserContentBytes(address whichUser, uint256 index) public constant returns (bytes32, bytes32);
-    function getNumContent(address whichUser) public returns (uint256);
+contract PublicationRegisterInterface {
+    function numPublications() public returns (uint256);
+    function getNumPublished(uint256 num) public returns (uint256);
+    function getContentAuthor(uint256 which, uint256 num) public returns (address);
+    function getAdmin(uint256 whichP) public returns (address);
+    function getContentBytes(uint256 whichP, uint256 whichC) public constant returns (bytes32, bytes32);
 }
 
 contract TagRegister {
 
-    struct Tag {
-        string tagName;
-         mapping (uint256 => address) addressIndex;
-         mapping (uint256 => uint256) postIndex;
-         mapping (uint256 => string) contentIndex;
-         uint256 numTagged;
+    struct ContentTag {
+        uint256 publicationIndex;
+        uint256 index;
+        string content;
     }
 
-    mapping (uint256 => Tag) public tagIndex;
+    PublicationRegisterInterface public publicationRegister;
     uint256 public numTags;
 
+    mapping (uint256 => uint256) public numContentTagsIndex;
+    mapping (uint256 => mapping (uint256 => ContentTag)) public contentTagIndex;
+
+    mapping (uint256 => uint256) public numPublicationTagsIndex;
+    mapping (uint256 => mapping (uint256 => uint256)) public publicationTagIndex;
+
     mapping (string => uint256) checkTagIndexLocation;
+    mapping (uint256 => string) public tagIndex;
     mapping (string => bool) _checkTagTaken;
+    mapping (uint256 => mapping (string => bool)) private contentAlreadyTagged;
+    mapping (uint256 => mapping (uint256 => bool)) public publicationAlreadyTagged;
 
-    UserContentRegisterInterface public userContentRegister;
-
-    constructor(address userContentRegisterAddress) public {
-        userContentRegister = UserContentRegisterInterface(userContentRegisterAddress);
+    constructor(address publicationRegisterAddress) public {
+        publicationRegister = PublicationRegisterInterface(publicationRegisterAddress);
+        numTags = 1;
     }
 
     function createTag(string tagName) public {
         if (!_checkTagTaken[tagName]) {
             _checkTagTaken[tagName] = true;
-            tagIndex[numTags] = Tag(tagName, 0);
+            tagIndex[numTags] = tagName;
             checkTagIndexLocation[tagName] = numTags;
             numTags++;
         }
     }
 
-    function tagContent(string tag, uint256 contentIndex) public  {
-        assert(contentIndex < userContentRegister.getNumContent(msg.sender)); //article num exists
+    function tagContent(string tag, uint256 whichPublication, uint256 whichContent) public  {
+        assert(whichPublication < publicationRegister.numPublications() && //publication num exists
+               whichContent < publicationRegister.getNumPublished(whichPublication) && //article num exists
+               msg.sender == publicationRegister.getContentAuthor(whichPublication, whichContent));// && //msg sender is author
+
+        var (contentOne, contentTwo) = publicationRegister.getContentBytes(whichPublication, whichContent);
+        var contentString = strConcat(bytes32ToString(contentOne), bytes32ToString(contentTwo));
+
+        if (!contentAlreadyTagged[checkTagIndexLocation[tag]][contentString]) {
+            if (!_checkTagTaken[tag]) createTag(tag);
+            uint256 whichTag = checkTagIndexLocation[tag];
+            contentTagIndex[whichTag][numContentTagsIndex[whichTag]] = ContentTag(whichPublication, whichContent,contentString);
+            numContentTagsIndex[whichTag]++;
+            contentAlreadyTagged[whichTag][contentString] = true;
+        }
+    }
+
+    function tagPublication(string tag, uint256 whichPublication) public  {
+        assert(whichPublication < publicationRegister.numPublications() &&
+               msg.sender == publicationRegister.getAdmin(whichPublication) &&
+               !publicationAlreadyTagged[checkTagIndexLocation[tag]][whichPublication]);
 
         if (!_checkTagTaken[tag]) createTag(tag);
-        uint256 whichTag = checkTagIndexLocation[tag];
-
-        uint256 contentNumber = tagIndex[whichTag].numTagged;
-        tagIndex[whichTag].addressIndex[contentNumber] = msg.sender;
-        tagIndex[whichTag].postIndex[contentNumber] = contentIndex;
-        var (contentOne, contentTwo) = getContentBytes(msg.sender, contentIndex);
-        tagIndex[whichTag].contentIndex[contentNumber] = strConcat(bytes32ToString(contentOne), bytes32ToString(contentTwo));
-
-        tagIndex[whichTag].numTagged++;
+        uint256 index = checkTagIndexLocation[tag];
+        publicationTagIndex[index][numPublicationTagsIndex[index]] = whichPublication;
+        numPublicationTagsIndex[index]++;
+        publicationAlreadyTagged[index][whichPublication] = true;
     }
 
     function checkTagTaken(string tagName) public view returns (bool) {
@@ -60,27 +84,12 @@ contract TagRegister {
     }
 
     function getTagContent(string tagName, uint256 tagContentIndex) public view returns (string) {
-        uint256 whichTag = checkTagIndexLocation[tagName];
-        Tag storage tag = tagIndex[whichTag];
-        return tag.contentIndex[tagContentIndex];
+        ContentTag storage tag = contentTagIndex[checkTagIndexLocation[tagName]][tagContentIndex];
+        return tag.content;
     }
 
-    function getContentBytes(address user, uint256 contentIndex) private constant returns (bytes32, bytes32) {
-        bytes32 contentOne;
-        bytes32 contentTwo;
-        (contentOne, contentTwo) = userContentRegister.getUserContentBytes(user, contentIndex);
-        return (contentOne, contentTwo);
-    }
-
-    function strConcat(string _a, string _b) private pure returns (string) {
-        bytes memory _ba = bytes(_a);
-        bytes memory _bb = bytes(_b);
-        string memory ab = new string(_ba.length + _bb.length);
-        bytes memory bab = bytes(ab);
-        uint k = 0;
-        for (uint i = 0; i < _ba.length; i++) bab[k++] = _ba[i];
-        for (i = 0; i < _bb.length; i++) bab[k++] = _bb[i];
-        return string(bab);
+    function getTagPublication(string tagName, uint256 tagPublicationIndex) public view returns (uint256) {
+        return publicationTagIndex[checkTagIndexLocation[tagName]][tagPublicationIndex];
     }
 
     function bytes32ToString(bytes32 x) private pure returns (string) {
@@ -98,5 +107,16 @@ contract TagRegister {
             bytesStringTrimmed[j] = bytesString[j];
         }
         return string(bytesStringTrimmed);
+    }
+
+    function strConcat(string _a, string _b) private pure returns (string) {
+        bytes memory _ba = bytes(_a);
+        bytes memory _bb = bytes(_b);
+        string memory ab = new string(_ba.length + _bb.length);
+        bytes memory bab = bytes(ab);
+        uint k = 0;
+        for (uint i = 0; i < _ba.length; i++) bab[k++] = _ba[i];
+        for (i = 0; i < _bb.length; i++) bab[k++] = _bb[i];
+        return string(bab);
     }
 }
