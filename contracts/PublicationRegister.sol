@@ -5,6 +5,11 @@ contract UserContentRegisterInterface {
     function getNumContent(address whichUser) public constant returns (uint256);
 }
 
+contract StringBytes32UtilInterface {
+    function stringToBytes32Tuple(string data) public constant returns (bytes32, bytes32);
+    function bytes32TupleToString(bytes32 one, bytes32 two) public pure returns (string);
+}
+
 contract PublicationRegister {
 
     struct Publication {
@@ -40,10 +45,12 @@ contract PublicationRegister {
     mapping (string => uint256) indexLookup;
     uint256 public numPublications;
     UserContentRegisterInterface public userContentRegister;
+    StringBytes32UtilInterface stringBytes32Util;
 
-    constructor(address _userContentRegisterAddress) public {
+    constructor(address userContentRegisterAddress, address stringBytes32UtilAddress) public {
         numPublications = 0;
-        userContentRegister = UserContentRegisterInterface(_userContentRegisterAddress);
+        userContentRegister = UserContentRegisterInterface(userContentRegisterAddress);
+        stringBytes32Util = StringBytes32UtilInterface(stringBytes32UtilAddress);
     }
 
     function checkNameTaken(string name) public constant returns (bool) {
@@ -69,8 +76,8 @@ contract PublicationRegister {
         if (p.open || p.publishingAccessList[msg.sender]) {
             p.publishedAuthorIndex[p.numPublished] = msg.sender;
             p.publishedPostIndex[p.numPublished] = index;
-            var (contentOne, contentTwo) = getContentBytes(whichPublication, index);
-            p.publishedContentIndex[p.numPublished] = strConcat(bytes32ToString(contentOne), bytes32ToString(contentTwo));
+            var (contentOne, contentTwo) = getContentBytesFromUserContentRegister(msg.sender, index);
+            p.publishedContentIndex[p.numPublished] = stringBytes32Util.bytes32TupleToString(contentOne, contentTwo);
             p.numPublished++;
             return p.numPublished;
         }
@@ -145,15 +152,14 @@ contract PublicationRegister {
         publicationIndex[whichPublication].authorClaimsOwedWei[msg.sender] = 0;
         msg.sender.transfer(owed);
     }
-
-    function getContentBytes(uint256 whichPublication, uint256 contentIndex) private constant returns (bytes32, bytes32) {
+    
+    function getContentBytesFromUserContentRegister(address user, uint256 index) private constant returns (bytes32, bytes32) {
+        return userContentRegister.getUserContentBytes(user, index);
+    }
+    
+    function getContentBytes(uint256 whichPublication, uint256 contentIndex) public constant returns (bytes32, bytes32) {
         Publication storage p = publicationIndex[whichPublication];
-        address user = p.publishedAuthorIndex[contentIndex];
-        uint256 userContentIndex = p.publishedPostIndex[contentIndex];
-        bytes32 contentOne;
-        bytes32 contentTwo;
-        (contentOne, contentTwo) = userContentRegister.getUserContentBytes(user, userContentIndex);
-        return (contentOne, contentTwo);
+        return stringBytes32Util.stringToBytes32Tuple(p.publishedContentIndex[contentIndex]);
     }
 
     function getContent(uint256 whichPublication, uint256 contentIndex) public constant returns (string) {
@@ -193,33 +199,4 @@ contract PublicationRegister {
     function getAdmin(uint256 whichPublication) public constant returns (address) {
         return publicationIndex[whichPublication].admin;
     }
-
-    function bytes32ToString(bytes32 x) private pure returns (string) {
-        bytes memory bytesString = new bytes(32);
-        uint charCount = 0;
-        for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
-            if (char != 0) {
-                bytesString[charCount] = char;
-                charCount++;
-            }
-        }
-        bytes memory bytesStringTrimmed = new bytes(charCount);
-        for (j = 0; j < charCount; j++) {
-            bytesStringTrimmed[j] = bytesString[j];
-        }
-        return string(bytesStringTrimmed);
-    }
-
-    function strConcat(string _a, string _b) private pure returns (string) {
-        bytes memory _ba = bytes(_a);
-        bytes memory _bb = bytes(_b);
-        string memory ab = new string(_ba.length + _bb.length);
-        bytes memory bab = bytes(ab);
-        uint k = 0;
-        for (uint i = 0; i < _ba.length; i++) bab[k++] = _ba[i];
-        for (i = 0; i < _bb.length; i++) bab[k++] = _bb[i];
-        return string(bab);
-    }
-
 }

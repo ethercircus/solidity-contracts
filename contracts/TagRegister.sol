@@ -1,4 +1,3 @@
-
 pragma solidity ^0.4.24;
 
 contract PublicationRegisterInterface {
@@ -7,6 +6,10 @@ contract PublicationRegisterInterface {
     function getContentAuthor(uint256 which, uint256 num) public returns (address);
     function getAdmin(uint256 whichP) public returns (address);
     function getContentBytes(uint256 whichP, uint256 whichC) public constant returns (bytes32, bytes32);
+}
+
+contract StringBytes32UtilInterface {
+    function bytes32TupleToString(bytes32 one, bytes32 two) public pure returns (string);
 }
 
 contract TagRegister {
@@ -18,6 +21,8 @@ contract TagRegister {
     }
 
     PublicationRegisterInterface public publicationRegister;
+    StringBytes32UtilInterface stringBytes32Util;
+    
     uint256 public numTags;
 
     mapping (uint256 => uint256) public numContentTagsIndex;
@@ -32,8 +37,9 @@ contract TagRegister {
     mapping (uint256 => mapping (string => bool)) private contentAlreadyTagged;
     mapping (uint256 => mapping (uint256 => bool)) public publicationAlreadyTagged;
 
-    constructor(address publicationRegisterAddress) public {
+    constructor(address publicationRegisterAddress, address stringBytes32UtilAddress) public {
         publicationRegister = PublicationRegisterInterface(publicationRegisterAddress);
+        stringBytes32Util = StringBytes32UtilInterface(stringBytes32UtilAddress);
         numTags = 1;
     }
 
@@ -48,11 +54,11 @@ contract TagRegister {
 
     function tagContent(string tag, uint256 whichPublication, uint256 whichContent) public  {
         assert(whichPublication < publicationRegister.numPublications() && //publication num exists
-               whichContent < publicationRegister.getNumPublished(whichPublication) && //article num exists
-               msg.sender == publicationRegister.getContentAuthor(whichPublication, whichContent));// && //msg sender is author
+              whichContent < publicationRegister.getNumPublished(whichPublication) && //article num exists
+              msg.sender == publicationRegister.getContentAuthor(whichPublication, whichContent));// && //msg sender is author
 
         var (contentOne, contentTwo) = publicationRegister.getContentBytes(whichPublication, whichContent);
-        var contentString = strConcat(bytes32ToString(contentOne), bytes32ToString(contentTwo));
+        string memory contentString = stringBytes32Util.bytes32TupleToString(contentOne, contentTwo);
 
         if (!contentAlreadyTagged[checkTagIndexLocation[tag]][contentString]) {
             if (!_checkTagTaken[tag]) createTag(tag);
@@ -90,33 +96,5 @@ contract TagRegister {
 
     function getTagPublication(string tagName, uint256 tagPublicationIndex) public view returns (uint256) {
         return publicationTagIndex[checkTagIndexLocation[tagName]][tagPublicationIndex];
-    }
-
-    function bytes32ToString(bytes32 x) private pure returns (string) {
-        bytes memory bytesString = new bytes(32);
-        uint charCount = 0;
-        for (uint j = 0; j < 32; j++) {
-            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
-            if (char != 0) {
-                bytesString[charCount] = char;
-                charCount++;
-            }
-        }
-        bytes memory bytesStringTrimmed = new bytes(charCount);
-        for (j = 0; j < charCount; j++) {
-            bytesStringTrimmed[j] = bytesString[j];
-        }
-        return string(bytesStringTrimmed);
-    }
-
-    function strConcat(string _a, string _b) private pure returns (string) {
-        bytes memory _ba = bytes(_a);
-        bytes memory _bb = bytes(_b);
-        string memory ab = new string(_ba.length + _bb.length);
-        bytes memory bab = bytes(ab);
-        uint k = 0;
-        for (uint i = 0; i < _ba.length; i++) bab[k++] = _ba[i];
-        for (i = 0; i < _bb.length; i++) bab[k++] = _bb[i];
-        return string(bab);
     }
 }

@@ -1,5 +1,9 @@
 pragma solidity ^0.4.24;
 
+contract StringBytes32UtilInterface{
+    function stringToBytes32Tuple(string data) public constant returns (bytes32, bytes32);
+}
+
 contract UserContentRegister {
 
     struct User {
@@ -15,8 +19,12 @@ contract UserContentRegister {
     mapping (string => address) _userAddressLookup;
     uint256 public numUsers;
     mapping (string => bool) _checkUserNameTaken;
+    
+    StringBytes32UtilInterface stringBytes32Util;
 
-    constructor() public  {}
+    constructor(address stringBytes32UtilAddress) public  {
+        stringBytes32Util = StringBytes32UtilInterface(stringBytes32UtilAddress);
+    }
 
     function registerNewUser(string userName, string metaData) public returns (bool) {
         if (!registered[msg.sender] && !_checkUserNameTaken[userName]) {
@@ -73,16 +81,7 @@ contract UserContentRegister {
     }
 
     function getUserContentBytes(address whichUser, uint256 index) public constant returns (bytes32, bytes32) {
-        bytes memory totalMemory = bytes(userIndex[whichUser].contentIndex[index]);
-        return (bytesToBytes32(totalMemory, 0), bytesToBytes32(totalMemory, 32));
-    }
-
-    function bytesToBytes32(bytes b, uint offset) private pure returns (bytes32) {
-        bytes32 out;
-        for (uint i = 0; i < 32 && offset + i < b.length; i++) {
-            out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
-        }
-         return out;
+        return stringBytes32Util.stringToBytes32Tuple(userIndex[whichUser].contentIndex[index]);
     }
 
     function getContentLinks(address whichUser, uint256 index) public constant returns (string) {

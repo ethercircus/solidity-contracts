@@ -39,7 +39,7 @@ contract('PublicationRegister', function(accounts) {
     })
     
     .then(function(content) {
-      assert.equal(content, "QmRd4yyBvzd63srGDF8c7uMf8Sif7JBmVzALVjJz343gSF", "publication was not created");	    
+      assert.equal(content, "QmRd4yyBvzd63srGDF8c7uMf8Sif7JBmVzALVjJz343gSF", "content was not published properly");	    
     });
   });
   //********************
