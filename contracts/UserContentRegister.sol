@@ -45,7 +45,7 @@ contract UserContentRegister {
     function getNumContent(address whichUser) public constant returns (uint256) {
         return userIndex[whichUser].numContent;
     }
-
+    
     function publishContent(string content) public  {
         assert(registered[msg.sender]);
         userIndex[msg.sender].contentIndex[userIndex[msg.sender].numContent] = content;

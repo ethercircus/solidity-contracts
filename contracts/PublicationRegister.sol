@@ -44,8 +44,11 @@ contract PublicationRegister {
     mapping (string => bool) _checkNameTaken;
     mapping (string => uint256) indexLookup;
     uint256 public numPublications;
+
     UserContentRegisterInterface public userContentRegister;
     StringBytes32UtilInterface stringBytes32Util;
+
+    event StoreData(string data, address author, uint256 whichPublication);
 
     constructor(address userContentRegisterAddress, address stringBytes32UtilAddress) public {
         numPublications = 0;
@@ -79,6 +82,7 @@ contract PublicationRegister {
             var (contentOne, contentTwo) = getContentBytesFromUserContentRegister(msg.sender, index);
             p.publishedContentIndex[p.numPublished] = stringBytes32Util.bytes32TupleToString(contentOne, contentTwo);
             p.numPublished++;
+            emit StoreData(p.publishedContentIndex[p.numPublished], msg.sender, whichPublication);
             return p.numPublished;
         }
         return 0;
