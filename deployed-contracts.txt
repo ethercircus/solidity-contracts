@@ -1,4 +1,4 @@
 https://rinkeby.etherscan.io/address/0x61f42c9889badc41a2e3ee87a59c94b935b8a130
 https://rinkeby.etherscan.io/address/0x4ebbedd1d12419e804488e1e3b7c9d59c9396ba7
-https://rinkeby.etherscan.io/address/0x6f8cc57920cf648589d8cb73e90bb7118fe7a2fd
-https://rinkeby.etherscan.io/address/0x6f6ba1b35c3c11e43d2bfa7a5554c1817473a189
+https://rinkeby.etherscan.io/address/0x6107d5ce4e19ed76021a3777bb1ea3f92b0e039b
+https://rinkeby.etherscan.io/address/0xbd0db4ecf90c210fb478f17a9e888b45a8b825ee
