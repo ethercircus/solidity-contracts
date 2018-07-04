@@ -82,7 +82,7 @@ contract PublicationRegister {
             var (contentOne, contentTwo) = getContentBytesFromUserContentRegister(msg.sender, index);
             p.publishedContentIndex[p.numPublished] = stringBytes32Util.bytes32TupleToString(contentOne, contentTwo);
             p.numPublished++;
-            emit StoreData(p.publishedContentIndex[p.numPublished], msg.sender, whichPublication);
+            emit StoreData(p.publishedContentIndex[p.numPublished - 1], msg.sender, whichPublication);
             return p.numPublished;
         }
         return 0;

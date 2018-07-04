@@ -1,0 +1,5 @@
+abigen --abi token.abi --pkg main --type Token --out token.go
+
+abigen --abi abi/PublicationRegister.abi --pkg gocontracts --type PublicationRegister --out gocontracts/PublicationRegister.go
+
+https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
