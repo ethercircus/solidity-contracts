@@ -208,4 +208,8 @@ contract PublicationRegister {
     function getAdmin(uint256 whichPublication) public constant returns (address) {
         return publicationIndex[whichPublication].admin;
     }
+
+    function checkAuthorPermissionStatus(uint256 whichPublication, address author) public constant returns (bool) {
+        return publicationIndex[whichPublication].publishingAccessList[author];
+    }
 }
