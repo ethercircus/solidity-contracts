@@ -191,6 +191,11 @@ contract PublicationRegister {
         return p.postComments[contentIndex][commentIndex];
     }
 
+    function getContentCommentAuthorByIndex(uint256 whichPublication, uint256 contentIndex, uint256 commentIndex) public constant returns (address) {
+        Publication storage p = publicationIndex[whichPublication];
+        return p.postCommentAddresses[contentIndex][commentIndex];
+    }
+
     function getContentAuthor(uint256 whichPublication, uint256 contentIndex) public constant returns (address) {
         Publication storage p = publicationIndex[whichPublication];
         return p.publishedAuthorIndex[contentIndex];
