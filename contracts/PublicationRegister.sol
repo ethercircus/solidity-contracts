@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 contract UserContentRegisterInterface {
     function getUserContentBytes(address whichUser, uint256 index) public constant returns (bytes32, bytes32);
@@ -24,6 +24,10 @@ contract PublicationRegister {
         mapping (uint256 => address) publishedAuthorIndex;
         mapping (uint256 => uint256) publishedPostIndex;
         mapping (uint256 => string) publishedContentIndex;
+        mapping (uint256 => uint) publishedTimeStampIndex;
+        mapping (uint256 => uint256) lockedAdminFundsIndex;
+        mapping (uint256 => uint256) lockedAuthorFundsIndex;
+        mapping (uint256 => bool) containsLockedFundsIndex;
 
         uint256 minSupportCostWei;
         uint8 adminPaymentPercentage;
@@ -44,16 +48,18 @@ contract PublicationRegister {
     mapping (string => bool) _checkNameTaken;
     mapping (string => uint256) indexLookup;
     uint256 public numPublications;
+    uint lockedfundsPeriod;
 
     UserContentRegisterInterface public userContentRegister;
     StringBytes32UtilInterface stringBytes32Util;
 
     event StoreData(string data, address author, uint256 whichPublication);
 
-    constructor(address userContentRegisterAddress, address stringBytes32UtilAddress) public {
+    constructor(address userContentRegisterAddress, address stringBytes32UtilAddress, uint _lockedFundsPeriod) public {
         numPublications = 0;
         userContentRegister = UserContentRegisterInterface(userContentRegisterAddress);
         stringBytes32Util = StringBytes32UtilInterface(stringBytes32UtilAddress);
+        lockedfundsPeriod - _lockedFundsPeriod;
     }
 
     function checkNameTaken(string name) public constant returns (bool) {
@@ -70,6 +76,7 @@ contract PublicationRegister {
         publicationIndex[numPublications].publishingAccessList[msg.sender] = true;
         _checkNameTaken[name] = true;
         indexLookup[name] = numPublications;
+        emit StoreData(metaData, msg.sender, numPublications);
         numPublications++;
     }
 
@@ -77,6 +84,7 @@ contract PublicationRegister {
         assert(index < userContentRegister.getNumContent(msg.sender));
         Publication storage p = publicationIndex[whichPublication];
         if (p.open || p.publishingAccessList[msg.sender]) {
+            p.publishedTimeStampIndex[p.numPublished] = block.timestamp;
             p.publishedAuthorIndex[p.numPublished] = msg.sender;
             p.publishedPostIndex[p.numPublished] = index;
             var (contentOne, contentTwo) = getContentBytesFromUserContentRegister(msg.sender, index);
@@ -117,9 +125,18 @@ contract PublicationRegister {
         } else {
             uint256 weiToAdmin = msg.value / 100 * p.adminPaymentPercentage;
             uint256 weiToAuthor = msg.value - weiToAdmin;
-            p.adminClaimOwedWei += weiToAdmin;
-            p.authorClaimsOwedWei[p.publishedAuthorIndex[postIndex]] += weiToAuthor;
+            
+            if (block.timestamp - p.publishedTimeStampIndex[postIndex] > lockedfundsPeriod) {
+                p.adminClaimOwedWei += weiToAdmin;
+                p.authorClaimsOwedWei[p.publishedAuthorIndex[postIndex]] += weiToAuthor;
+            } else {
+                p.lockedAdminFundsIndex[postIndex] += weiToAdmin;
+                p.lockedAuthorFundsIndex[postIndex] += weiToAuthor;
+                p.containsLockedFundsIndex[postIndex] = true;
+            }
+            
             p.postRevenueWeiIndex[postIndex] += msg.value;
+            
             if (!p.trackPostSupporters[postIndex][msg.sender]) {
                 p.trackPostSupporters[postIndex][msg.sender] = true;
                 p.postUniqueSupportersIndex[postIndex]++;
@@ -128,15 +145,41 @@ contract PublicationRegister {
                 p.trackPublicationSupporters[msg.sender] = true;
                 p.uniqueSupporters++;
             }
-	    bytes memory commentBytes = bytes(optionalComment);
+	        bytes memory commentBytes = bytes(optionalComment);
             if (commentBytes.length != 0) {
                 p.postComments[postIndex][p.numCommentsIndex[postIndex]] = optionalComment;
                 p.postCommentAddresses[postIndex][p.numCommentsIndex[postIndex]] = msg.sender;
                 p.numCommentsIndex[postIndex]++;
+                emit StoreData(optionalComment, msg.sender, whichPublication);
             }
             return true;
         }
-
+    }
+    
+    function unlockPostClaims(uint256 whichPublication, uint256 postIndex) public {
+        if (block.timestamp > checkPostUnlockClaimsDate(whichPublication, postIndex)) {
+            Publication storage p = publicationIndex[whichPublication];
+            uint256 weiToAdmin = p.lockedAdminFundsIndex[postIndex];
+            uint256 weiToAuthor= p.lockedAuthorFundsIndex[postIndex];
+            
+            p.lockedAdminFundsIndex[postIndex] = 0;
+            p.lockedAuthorFundsIndex[postIndex] = 0;
+            
+            p.adminClaimOwedWei += weiToAdmin;
+            p.authorClaimsOwedWei[p.publishedAuthorIndex[postIndex]] += weiToAuthor;
+            
+            p.containsLockedFundsIndex[postIndex] = false;
+        }
+    }
+    
+    function checkPostUnlockClaimsDate(uint256 whichPublication, uint256 postIndex) public constant returns (uint) {
+        Publication storage p = publicationIndex[whichPublication];
+        return p.publishedTimeStampIndex[postIndex] + lockedfundsPeriod;
+    }
+    
+    function checkPostContainsLockedFunds(uint256 whichPublication, uint256 postIndex) public view returns (bool) {
+        Publication storage p = publicationIndex[whichPublication];
+        return p.containsLockedFundsIndex[postIndex];
     }
 
     function withdrawAdminClaim(uint256 whichPublication) public {
@@ -147,7 +190,7 @@ contract PublicationRegister {
         }
     }
 
-    function checkAuthorClaim(uint256 whichPublication, address author) public constant returns (uint256) {
+    function checkAuthorClaim(uint256 whichPublication, address author) public view returns (uint256) {
         return publicationIndex[whichPublication].authorClaimsOwedWei[author];
     }
 
@@ -190,7 +233,7 @@ contract PublicationRegister {
         Publication storage p = publicationIndex[whichPublication];
         return p.postComments[contentIndex][commentIndex];
     }
-
+    
     function getContentCommentAuthorByIndex(uint256 whichPublication, uint256 contentIndex, uint256 commentIndex) public constant returns (address) {
         Publication storage p = publicationIndex[whichPublication];
         return p.postCommentAddresses[contentIndex][commentIndex];
@@ -208,7 +251,7 @@ contract PublicationRegister {
     function getAdmin(uint256 whichPublication) public constant returns (address) {
         return publicationIndex[whichPublication].admin;
     }
-
+    
     function checkAuthorPermissionStatus(uint256 whichPublication, address author) public constant returns (bool) {
         return publicationIndex[whichPublication].publishingAccessList[author];
     }
